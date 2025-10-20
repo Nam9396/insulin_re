@@ -1,0 +1,12 @@
+numpy 
+pandas
+matplotlib
+seaborn
+openpyxl
+scipy
+jupyter
+statsmodels
+pingouin
+missingno
+pyampute
+ 

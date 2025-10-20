@@ -1,0 +1,96 @@
+
+
+```gitignore
+# ----------------------------------------------------------------------
+# Tổng quan: File .gitignore cho Dự án Phân tích Dữ liệu Python/Pandas/VSCode
+# ----------------------------------------------------------------------
+
+## 1. Môi trường và Trình quản lý Gói (Python/Environment)
+# Thư mục môi trường ảo (Virtual environment folder)
+# Git không nên theo dõi các gói phụ thuộc (dependencies)
+myvenv/
+.myvenv/
+venv/
+.venv/
+env/
+/bin
+/include
+/lib
+/lib64
+/Scripts
+/share
+
+# Tệp bytecode (Compiled Python files)
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Tệp phân phối và đóng gói (Distribution and packaging files)
+.Python
+build/
+dist/
+wheels/
+*.egg-info/
+*.htmlcov
+.tox/
+
+---
+
+## 2. Dữ liệu và Notebook (Data and Notebooks)
+# Tệp dữ liệu lớn (Large data files) - Thường nên được lưu trữ ngoài Git LFS
+# Bỏ qua tệp dữ liệu đã làm sạch/trung gian và các tệp dữ liệu gốc
+# Nếu bạn muốn theo dõi dữ liệu, hãy xóa các dòng này
+/data/
+/datasets/
+*.tsv
+*.pkl
+*.feather
+*.parquet
+*.sas7bdat
+
+# Tệp check-point của Jupyter Notebooks
+# Giúp loại bỏ những thay đổi nhỏ không mong muốn
+.ipynb_checkpoints/
+
+# Các tệp tạm thời khác
+*.tmp
+*.bak
+*.swp
+
+---
+
+## 3. IDE và Công cụ (VS Code)
+# Thư mục cấu hình VS Code
+.vscode/
+
+# Tệp nhật ký (Logs) và kết quả (Outputs)
+logs/
+*.log
+*.out
+
+# Lịch sử điều khiển tương tác Python (History file for Python/IPython)
+.ipython_history
+
+# Tệp kết quả của các công cụ phân tích dữ liệu
+# Ví dụ: mô hình, tệp báo cáo
+*.model
+*.bin
+/results/
+/reports/
+
+# Thư mục Jupyter Notebook Output
+/notebooks_output/
+
+---
+
+## 4. Hệ điều hành và Khác (OS and Others)
+# macOS
+.DS_Store
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+```
+.Rproj.user
