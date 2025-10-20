@@ -41,8 +41,8 @@ wheels/
 # Tệp dữ liệu lớn (Large data files) - Thường nên được lưu trữ ngoài Git LFS
 # Bỏ qua tệp dữ liệu đã làm sạch/trung gian và các tệp dữ liệu gốc
 # Nếu bạn muốn theo dõi dữ liệu, hãy xóa các dòng này
-/data/
-/datasets/
+# /data/
+# /datasets/
 *.tsv
 *.pkl
 *.feather
