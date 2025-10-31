@@ -66,54 +66,40 @@ path <- "../../data"
 total_data <- file.path(path, "exposome_data/total_exwas_data.csv")
 ```
 
-### Tải dữ liệu - Tạo rexposome object
+### Tải dữ liệu
 ```{r}
 df <- read.csv(total_data, header = TRUE)
 
 families = list(
     Prenatal = c('pregnancy_smoking', 'GDM', 'gestational_weight_gain'), 
     Perinatal = c('preterm_birth', 'gestational_age_week', 'birth_weight_gram'), 
-    Postnatal = c('CPP', 'exclusive_breastfeeding_month', 'mixed_breastfeeding_month'), 
-    Biomaker = c('cholesterol', 'TG', 'HDL', 'cortisol'),
+    Postnatal = c('CPP', 'exclusive_breastfeeding_month', 'mixed_breastfeeding_month'),
+    Biomaker = c('cholesterol_blood', 'TG', 'HDL', 'cortisol'),
     Family = c('family_income', 'father_diabetes', 'mother_diabetes', 'education_level', 'father_BMI', 'mother_BMI'),
     Activity = c('sedentary_lifestyle_hour_day', 'low_physical_activity_hour_day'), 
     Sleep = c('sleep_duration', 'PSQI_score', 'snoring_times_week', 'sleep_apnea_times_week'),
     Psycho = c('score_5A', 'PSS', 'score_5B', 'CES_D', 'score_5C', 'RSE'), 
     Calories = c('Calories'), 
-    Protein = c('Crude.protein', 'EAA', 'NEAA', 'PLMF', 'PHSF'), 
-    Fat = c('Crude.fat', 'Trans.fat', 'TFA_S', 'TFA_M', 'TFA_P', 'Cholesterol', 'Seeds'), 
-    Carbohydrates = c('Total.carbohydrate', 'Whole.Rhizome', 'Monosaccharides', 'Disaccharides'), 
-    "Water & fruits & vegetables" = c('Water', 'Fruit', 'Vegetable', 'Dietary.fiber'), 
-    Diary = c('Dairy.fullfat', 'Dairy.skim...lowfat'), 
+    Protein = c('Crude_protein', 'EAA', 'NEAA', 'PLMF', 'PHSF'), 
+    Fat = c('Crude_fat', 'Trans_fat', 'TFA_S', 'TFA_M', 'TFA_P', 'Cholesterol', 'Seeds'), 
+    Carbohydrates = c('Total_carbohydrate', 'Whole_Rhizome', 'Monosaccharides', 'Disaccharides'), 
+    Water_fruits_vegetables = c('Water', 'Fruit', 'Vegetable', 'Dietary_fiber'), 
+    Diary = c('Dairy_fullfat', 'Dairy_skim_lowfat'), 
     Ions = c('Sodium', 'Potassium', 'Calcium', 'Magnesium', 'Phosphorus', 'Iron', 'Zinc'), 
-    Vitamins = c('VitA', 'VitB', 'VitC', 'VitE')
+    Vitamins = c('VitA', 'VitB', 'VitC', 'VitE') 
 )
 
 setdiff(unlist(families), colnames(df))
 
-
 ```
 
+# Tạo rexposome object
 ```{r}
-# 1. Chuẩn hóa tên cột df: R tự động xử lý khoảng trắng, ký tự đặc biệt và đảm bảo duy nhất
-colnames(df) <- make.names(colnames(df), unique = TRUE)
-
-# 2. Chuẩn hóa families tự động theo tên df mới
-families <- lapply(families, function(x) make.names(x, unique = TRUE))
-
-# 3. Kiểm tra tất cả biến đều tồn tại
-missing_vars <- setdiff(unlist(families), colnames(df))
-if(length(missing_vars) > 0) {
-  stop("Các biến sau chưa có trong df: ", paste(missing_vars, collapse = ", "))
-}
-
-# 4. Load exposome object
 exp <- loadExposome_plain(
   data = df, 
   data_id = "sub_id", 
   pheno_cols = make.names(c('age', 'zbmi', 'sex', 'insulin_re')), 
   families = families
 )
-
 ```
 
