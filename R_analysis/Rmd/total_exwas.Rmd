@@ -1,0 +1,119 @@
+---
+title: "total_exwas"
+output: html_document
+---
+
+## PHÂN TÍCH ExWAS đề kháng insulin 
+
+### Cài đặt devtools / BiocManager
+```{r, message = FALSE}
+if (!requireNamespace("devtools", quietly = TRUE)) 
+  install.packages("devtools")
+if (!requireNamespace("BiocManager", quietly=TRUE))
+  install.packages("BiocManager")
+```
+
+### Cài đặt rexposome dependencies
+```{r message = FALSE}
+packages = c('Biobase', 'mice', 'MultiDataSet', 'lsr', 'FactoMineR',
+	'stringr', 'circlize', 'corrplot', 'ggplot2', 'reshape2', 'pryr',
+	'scales', 'imputeLCMD', 'scatterplot3d', 'glmnet', 'gridExtra',
+	'grid', 'Hmisc', 'gplots', 'gtools', 'S4Vectors', 'MASS'
+)
+for( pkg in packages ) {
+  if( !pkg %in% rownames( installed.packages() ) ) {
+    message( "Installing ", pkg )
+    BiocManager::install( pkg )
+  }
+}
+```
+
+### cài đặt rexposome
+```{r, message = FALSE}
+if (!requireNamespace("rexposome", quietly = TRUE)) {
+  message("rexposome chưa được cài, tiến hành cài đặt...")
+  devtools::install_github("isglobal-brge/rexposome")
+} else {
+  message("rexposome đã được cài đặt.")
+}
+```
+
+### Nạp vào những gói cần thiết 
+**Các gói cơ bản**
+```{r, message = FALSE}
+library(tidyverse)   # xử lý, trực quan hóa dữ liệu
+library(readxl)      # đọc file Excel (.xlsx)
+library(writexl)     # một package khác để xuất file excel
+library(psych)       # thống kê mô tả, kiểm định tâm lý
+library(car)         # hồi quy, kiểm định mở rộng
+library(mice)        # bù dữ liệu thiếu
+library(naniar)      # kiểm tra & trực quan hóa dữ liệu thiếu
+library(xtable)      # Chuyển bảng dữ liệu thành bảng LaTeX hoặc HTML (phục vụ xuất báo cáo)
+library(gridExtra)   # Sắp xếp và kết hợp nhiều biểu đồ ggplot2 trên cùng một trang
+library(Cairo)       # Xuất đồ họa chất lượng cao (PDF, PNG, SVG) với chống răng cưa và hỗ trợ in ấn
+```
+**Các gói cần cho phân tích ExWAS**
+```{r, message = FALSE}
+library(rexposome)      # Phân tích exposome: xử lý, mô tả và kiểm định liên quan exposome-kết cục
+library(MASS)           # Hỗ trợ mô hình thống kê và phép biến đổi dữ liệu (ví dụ: Box-Cox)
+library(MultiDataSet)   # Quản lý và tích hợp nhiều bộ dữ liệu omic hoặc exposome trong một đối tượng
+library(corrplot)
+```
+
+### Thiết lập đường dẫn 
+```{r}
+path <- "../../data"
+total_data <- file.path(path, "exposome_data/total_exwas_data.csv")
+```
+
+### Tải dữ liệu - Tạo rexposome object
+```{r}
+df <- read.csv(total_data, header = TRUE)
+
+families = list(
+    Prenatal = c('pregnancy_smoking', 'GDM', 'gestational_weight_gain'), 
+    Perinatal = c('preterm_birth', 'gestational_age_week', 'birth_weight_gram'), 
+    Postnatal = c('CPP', 'exclusive_breastfeeding_month', 'mixed_breastfeeding_month'), 
+    Biomaker = c('cholesterol', 'TG', 'HDL', 'cortisol'),
+    Family = c('family_income', 'father_diabetes', 'mother_diabetes', 'education_level', 'father_BMI', 'mother_BMI'),
+    Activity = c('sedentary_lifestyle_hour_day', 'low_physical_activity_hour_day'), 
+    Sleep = c('sleep_duration', 'PSQI_score', 'snoring_times_week', 'sleep_apnea_times_week'),
+    Psycho = c('score_5A', 'PSS', 'score_5B', 'CES_D', 'score_5C', 'RSE'), 
+    Calories = c('Calories'), 
+    Protein = c('Crude.protein', 'EAA', 'NEAA', 'PLMF', 'PHSF'), 
+    Fat = c('Crude.fat', 'Trans.fat', 'TFA_S', 'TFA_M', 'TFA_P', 'Cholesterol', 'Seeds'), 
+    Carbohydrates = c('Total.carbohydrate', 'Whole.Rhizome', 'Monosaccharides', 'Disaccharides'), 
+    "Water & fruits & vegetables" = c('Water', 'Fruit', 'Vegetable', 'Dietary.fiber'), 
+    Diary = c('Dairy.fullfat', 'Dairy.skim...lowfat'), 
+    Ions = c('Sodium', 'Potassium', 'Calcium', 'Magnesium', 'Phosphorus', 'Iron', 'Zinc'), 
+    Vitamins = c('VitA', 'VitB', 'VitC', 'VitE')
+)
+
+setdiff(unlist(families), colnames(df))
+
+
+```
+
+```{r}
+# 1. Chuẩn hóa tên cột df: R tự động xử lý khoảng trắng, ký tự đặc biệt và đảm bảo duy nhất
+colnames(df) <- make.names(colnames(df), unique = TRUE)
+
+# 2. Chuẩn hóa families tự động theo tên df mới
+families <- lapply(families, function(x) make.names(x, unique = TRUE))
+
+# 3. Kiểm tra tất cả biến đều tồn tại
+missing_vars <- setdiff(unlist(families), colnames(df))
+if(length(missing_vars) > 0) {
+  stop("Các biến sau chưa có trong df: ", paste(missing_vars, collapse = ", "))
+}
+
+# 4. Load exposome object
+exp <- loadExposome_plain(
+  data = df, 
+  data_id = "sub_id", 
+  pheno_cols = make.names(c('age', 'zbmi', 'sex', 'insulin_re')), 
+  families = families
+)
+
+```
+

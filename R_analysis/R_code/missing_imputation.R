@@ -8,20 +8,24 @@ library(mice)        # bù dữ liệu thiếu
 library(naniar)      # kiểm tra & trực quan hóa dữ liệu thiếu
 library(writexl)     # một package khác để xuất file excel
 
-df <- read_excel("data/risk_factors.xlsx")
+df <- read_excel("../data/risk_factors.xlsx")
 head(df)
 
 glimpse(df)
 str(df)
-miss_var_summary(df)
+View(miss_var_summary(df))
+
+# mcar_test(df) # test gặp lỗi không rõ lí do
 
 pool_df = mice(df, seed = 1234, printFlag = F)
 pool_df$imp$gestational_weight_gain
 
-imputed_df <- complete(pool_df, action=4)
+imputed_df <- complete(pool_df, action=1)
 glimpse(imputed_df)
 View(miss_var_summary(imputed_df))
 
+# không thể nào impute được các biến: CES_D, PSS, RSE
+
 # write.csv(imputed_df, "imputed_data.csv", row.names = FALSE)
-write_xlsx(imputed_df, "imputed_data.xlsx")
+write_xlsx(imputed_df, "../data/imputed_data.xlsx")
 

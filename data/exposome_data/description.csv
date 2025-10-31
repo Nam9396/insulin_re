@@ -1,0 +1,35 @@
+exposure,family,description
+Calories,Calories,Total energy intake 
+Crude protein,Protein,Total protein intake 
+EAA,Protein,Essential amino acids 
+NEAA,Protein,Non-essential amino acids
+PLMF,Protein,Protein sources with low to moderate fat content
+PHSF,Protein,Protein sources with high to super-high fat content
+Crude fat,Fat,Total fat intake
+Trans fat,Fat,Trans fatty acids
+TFA_S,Fat,Total saturated fatty acids.
+TFA_M,Fat,Total monounsaturated fatty acids
+TFA_P,Fat,Total polyunsaturated fatty acids
+Cholesterol,Fat,Cholesterol intake
+Seeds,Fat,Fat from seeds
+Total carbohydrate,Carbohydrates,Total carbohydrate intake
+Whole Rhizome,Carbohydrates,Whole rhizome carbohydrates
+Monosaccharides,Carbohydrates,Simple sugars
+Disaccharides,Carbohydrates,Double sugars
+Water,Water & Fruits & Vegetables,Water intake
+Fruit,Water & Fruits & Vegetables,Fruit intake
+Vegetable,Water & Fruits & Vegetables,Vegetable intake
+Dietary fiber,Water & Fruits & Vegetables,Dietary fiber intake
+Dairy (fullfat),Diary,Full-fat dairy products
+Dairy (skim & lowfat),Diary,Skim-Lowfat dairy products
+Sodium,Ions,Sodium intake
+Potassium,Ions,Potassium intake
+Calcium,Ions,Calcium intake
+Magnesium,Ions,Magnesium intake
+Phosphorus,Ions,Phosphorus intake
+Iron,Ions,Iron intake
+Zinc,Ions,Zinc intake
+VitA,Vitamins,Vitamin A
+VitB,Vitamins,Vitamin B
+VitC,Vitamins,Vitamin C
+VitE,Vitamins,Vitamin E
