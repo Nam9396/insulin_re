@@ -1,0 +1,33 @@
+# MISSING DATA IMPUTATION
+```{r}
+combine_df <- cbind(expos(exp), pData(exp))
+
+exp_pool <- mice(combine_df,
+  pred = quickpred(combine_df, mincor = 0.2, minpuc = 0.4),
+  seed = 38788, m = 10, maxit = 10, printFlag = FALSE
+)
+
+exp_me <- complete(exp_pool, action = 0)
+exp_me[ , ".imp"] <- 0
+exp_me[ , ".id"] <- sampleNames(exp)
+
+for(set in 1:10) {
+  im <- complete(exp_pool, action = set)
+  im[ , ".imp"] <- set
+  im[ , ".id"] <- sampleNames(exp)
+  exp_me <- rbind(exp_me, im)
+}
+
+rownames(exp_me) <- 1:nrow(exp_me)
+
+fd_df <- as.data.frame(fData(exp)[c("Family")])
+fd_df$Exposure <- rownames(fd_df)
+
+exp_imp <- loadImputed(
+  data = exp_me,
+  description = fd_df,
+  description.famCol = "Family",
+  description.expCol = "Exposure"
+)
+
+exp <- toES(exp_imp, rid = 1)

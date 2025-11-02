@@ -1,9 +1,7 @@
 ---
-title: "total_exwas"
+title: "PHÂN TÍCH ExWAS đề kháng insulin"
 output: html_document
 ---
-
-## PHÂN TÍCH ExWAS đề kháng insulin 
 
 ### Cài đặt devtools / BiocManager
 ```{r, message = FALSE}
@@ -28,7 +26,7 @@ for( pkg in packages ) {
 }
 ```
 
-### cài đặt rexposome
+### Cài đặt rexposome
 ```{r, message = FALSE}
 if (!requireNamespace("rexposome", quietly = TRUE)) {
   message("rexposome chưa được cài, tiến hành cài đặt...")
@@ -63,43 +61,358 @@ library(corrplot)
 ### Thiết lập đường dẫn 
 ```{r}
 path <- "../../data"
-total_data <- file.path(path, "exposome_data/total_exwas_data.csv")
+expof_0 <- file.path(path, "exposome_data/exposures_0.csv") # không có calories
+expof_1 <- file.path(path, "exposome_data/exposures_1.csv") # có calories
+descf_0 <- file.path(path, "exposome_data/description_0.csv")
+descf_1 <- file.path(path, "exposome_data/description_1.csv")
+phenf <- file.path(path, "exposome_data/phenotypes.csv")
 ```
 
-### Tải dữ liệu
+### Tải dữ liệu 
 ```{r}
-df <- read.csv(total_data, header = TRUE)
+dd_0 <- read.csv(descf_0, header = TRUE)
+dd_1 <- read.csv(descf_1, header = TRUE)
+ee_0 <- read.csv(expof_0, header = TRUE) # file exp đã được trans
+ee_1 <- read.csv(expof_1, header = TRUE) # file exp đã được trans
+pp <- read.csv(phenf, header = TRUE)
+```
 
-families = list(
-    Prenatal = c('pregnancy_smoking', 'GDM', 'gestational_weight_gain'), 
-    Perinatal = c('preterm_birth', 'gestational_age_week', 'birth_weight_gram'), 
-    Postnatal = c('CPP', 'exclusive_breastfeeding_month', 'mixed_breastfeeding_month'),
-    Biomaker = c('cholesterol_blood', 'TG', 'HDL', 'cortisol'),
-    Family = c('family_income', 'father_diabetes', 'mother_diabetes', 'education_level', 'father_BMI', 'mother_BMI'),
-    Activity = c('sedentary_lifestyle_hour_day', 'low_physical_activity_hour_day'), 
-    Sleep = c('sleep_duration', 'PSQI_score', 'snoring_times_week', 'sleep_apnea_times_week'),
-    Psycho = c('score_5A', 'PSS', 'score_5B', 'CES_D', 'score_5C', 'RSE'), 
-    Calories = c('Calories'), 
-    Protein = c('Crude_protein', 'EAA', 'NEAA', 'PLMF', 'PHSF'), 
-    Fat = c('Crude_fat', 'Trans_fat', 'TFA_S', 'TFA_M', 'TFA_P', 'Cholesterol', 'Seeds'), 
-    Carbohydrates = c('Total_carbohydrate', 'Whole_Rhizome', 'Monosaccharides', 'Disaccharides'), 
-    Water_fruits_vegetables = c('Water', 'Fruit', 'Vegetable', 'Dietary_fiber'), 
-    Diary = c('Dairy_fullfat', 'Dairy_skim_lowfat'), 
-    Ions = c('Sodium', 'Potassium', 'Calcium', 'Magnesium', 'Phosphorus', 'Iron', 'Zinc'), 
-    Vitamins = c('VitA', 'VitB', 'VitC', 'VitE') 
+### Tạo rexposome object - exposure không chứa calories
+```{r, warning=FALSE}
+exp_0 <-readExposome(
+  exposures=expof_0,
+  description=descf_0,
+  phenotype=phenf,
+  sep= ",",
+  description.famCol="family",
+  description.expCol="exposure",
+  exposures.samCol="sub_id",
+  phenotype.samCol="sub_id"
+)
+dim(exp_0)
+
+```
+
+### Tạo rexposome object - exposure chứa calories
+```{r, warning=FALSE}
+exp_1 <-readExposome(
+  exposures=expof_1,
+  description=descf_1,
+  phenotype=phenf,
+  sep= ",",
+  description.famCol="family",
+  description.expCol="exposure",
+  exposures.samCol="sub_id",
+  phenotype.samCol="sub_id"
+)
+dim(exp_1)
+```
+
+### Khám phá cấu trúc của ExposomeSet object
+```{r}
+# truy cập tên các đối tượng quan sát
+head(sampleNames(exp_1))
+# truy cập vào các biến số phơi nhiễm
+head(exposureNames(exp_1))
+# truy cập vào tên family trong description
+head(familyNames(exp_1))
+# truy cập vào confounder và outcome 
+head(phenotypeNames(exp_1))
+# truy cập vào toàn bộ file descf
+head(fData(exp_1))
+# truy cập vào bảng dữ liệu phenotypes
+head(pData(exp_1), n = 3)
+```
+
+### Kiểm tra missing data
+```{r}
+tableMissings(exp_1, set = "exposures", output = "n")
+tableMissings(exp_1, set = "phenotypes", output = "n")
+
+png("plots/missing_plot.png", width = 10, height = 10, units = "in", res = 300)
+plotMissings(exp_1, set = "exposures")
+dev.off()
+```
+
+### Kiểm định phân phối chuẩn 
+```{r}
+nm <- normalityTest(exp_1)
+table(nm$normality)
+# nm$exposure[!nm$normality]
+```
+
+### Exploring Exposure Correlations
+```{r, warning=FALSE}
+exp_c <- correlation(exp_1, method.cor = "pearson",  warnings = FALSE)
+
+# Tạo bản sao object gốc
+exp_c_filtered <- exp_c
+# Lấy ma trận tương quan
+cor_mat <- assayDataElement(exp_c_filtered, "corr")
+# Chỉ giữ các giá trị |r| >= 0.9
+cor_mat[abs(cor_mat) < 0.9] <- 0  # hoặc NA nếu muốn bỏ hẳn các cạnh
+# Gán lại vào object
+assayDataElement(exp_c_filtered, "corr") <- cor_mat
+
+# Vẽ biểu đồ circos với các kết nối >=0.9
+
+png("plots/exp_corr_plot.png", width = 10, height = 10, units = "in", res = 300)
+plotCorrelation(
+  exp_c_filtered, 
+  type = "circos"
+)
+dev.off()
+```
+### Exposome PCA
+```{r}
+exp_pca <- pca(exp_1, pca = TRUE)
+
+loadings_matrix <- as.data.frame(round(exp_pca@pca$var$coord, 4))
+
+loadings_matrix$exposure <- rownames(loadings_matrix)
+
+# write_xlsx(loadings_matrix, "tables/loadings_matrix.xlsx")
+```
+
+### Trực quan hóa PCA
+```{r, warning = FALSE}
+png("plots/pca_all_plot.png", width = 10, height = 10, units = "in", res = 300)
+plotPCA(exp_pca, set = "all")
+dev.off()
+```
+```{r, warning = FALSE}
+png("plots/pca_exps_plot.png", width = 7, height = 7, units = "in", res = 300)
+plotPCA(exp_pca, set = "exposures", show.exposures = TRUE) +
+ ggtitle("Insulin resistance - PCA - Exposures Space") + 
+  ggplot2::theme(legend.position = "bottom")
+dev.off()
+```
+```{r, warning=FALSE}
+png("plots/pca_samples_plot.png", width = 10, height = 7, units = "in", res = 300)
+plotPCA(exp_pca, set = "samples", show.exposures = TRUE, show.samples = TRUE, phenotype = "insulin_re") +
+ ggtitle("Insulin resistance - PCA- Samples Space") + 
+  ggplot2::theme(legend.position = "bottom")
+dev.off()
+```
+
+```{r, warning=FALSE}
+png("plots/pca_corr_plot.png", width = 7, height = 7, units = "in", res = 300)
+plotEXP(exp_pca)
+dev.off()
+```
+
+### Exposome Clustering
+```{r, warning=FALSE}
+hclust_data <- function(data, ...) {
+  hclust(d = dist(x = data), ...)  
+}
+
+hclust_k5 <- function(result) {
+  cutree(result, k = 5)  
+}
+
+exp_l <- clustering(exp_0, method = hclust_data, cmethod = hclust_k5)
+
+png("plots/clustering_plot.png", width = 15, height = 15, units = "in", res = 300)
+plotClassification(exp_l)
+dev.off()
+```
+
+### ExWAS analysis (un-adjusted model)
+```{r, warning=FALSE}
+exwas_unadjusted <- exwas(
+  exp_0,
+  formula = insulin_re ~ 1,
+  family = "binomial", 
+  warnings = FALSE
 )
 
-setdiff(unlist(families), colnames(df))
-
+exwas_unadjusted_result <- as.data.frame(exwas_unadjusted@comparison)
 ```
 
-# Tạo rexposome object
+```{r, warning=FALSE}
+# Vẽ biểu đồ 
+
+png("plots/univariate_unadjusted_plot.png", width = 7, height = 10, units = "in", res = 300)
+plotExwas(exwas_unadjusted, show.effective = TRUE) +
+  geom_vline(
+    xintercept = -log10(0.05),    # ≈ 1.30103
+    color = "blue",
+    linetype = "dashed",
+    size = 0.5
+  ) +
+    theme(legend.position = "right") 
+dev.off()
+```
 ```{r}
-exp <- loadExposome_plain(
-  data = df, 
-  data_id = "sub_id", 
-  pheno_cols = make.names(c('age', 'zbmi', 'sex', 'insulin_re')), 
-  families = families
-)
+# Xuất ra file kết quả 
+
+exp_ordered <- dd_0$exposure
+
+exwas_unadjusted_result <- exwas_unadjusted_result[exp_ordered, ]
+
+exwas_unadjusted_result[] <- lapply(exwas_unadjusted_result, function(x) {
+  suppressWarnings(as.numeric(x))
+})
+
+exwas_unadjusted_result <- round(exwas_unadjusted_result, 4)
+
+exwas_unadjusted_result$exposure <- rownames(exwas_unadjusted_result)
+
+# write_xlsx(exwas_unadjusted_result, "tables/exwas_unadjusted_result.xlsx")
 ```
+
+### ExWAS analysis (adjusted model)
+```{r, warning=FALSE}
+exwas_adjusted <- exwas(
+  exp_0, 
+  formula = insulin_re ~ sex + age + zbmi + calories,
+  family = "binomial", 
+  warnings = FALSE
+)
+
+exwas_adjusted_result <- as.data.frame(exwas_adjusted@comparison)
+```
+
+```{r}
+# Vẽ biểu đồ 
+
+png("plots/univariate_adjusted_plot.png", width = 7, height = 10, units = "in", res = 300)
+plotExwas(exwas_adjusted, show.effective = TRUE) +
+  geom_vline(
+    xintercept = -log10(0.05),    # ≈ 1.30103
+    color = "blue",
+    linetype = "dashed",
+    size = 0.5
+  ) +
+    theme(legend.position = "right") 
+dev.off() 
+```
+```{r}
+# Xuất ra file kết quả 
+
+exp_ordered <- dd_0$exposure
+
+exwas_adjusted_result <- exwas_adjusted_result[exp_ordered, ]
+
+exwas_adjusted_result[] <- lapply(exwas_adjusted_result, function(x) {
+  suppressWarnings(as.numeric(x))
+})
+
+exwas_adjusted_result <- round(exwas_adjusted_result, 4)
+
+exwas_adjusted_result$exposure <- rownames(exwas_adjusted_result)
+
+# write_xlsx(exwas_adjusted_result, "tables/exwas_adjusted_result.xlsx")
+```
+
+### Model cho giới nam
+```{r, warning=FALSE}
+exwas_adjusted_male <- exwas(
+  exp_0, 
+  formula = insulin_re ~ age + zbmi + calories,
+  family = "binomial", 
+  warnings = FALSE,
+  filter = sex==1
+)
+
+exwas_adjusted_male_result <- as.data.frame(exwas_adjusted_male@comparison)
+```
+
+```{r}
+# Vẽ biểu đồ 
+
+png("plots/univariate_adjusted_m_plot.png", width = 7, height = 10, units = "in", res = 300)
+plotExwas(exwas_adjusted_male, show.effective = TRUE) +
+  geom_vline(
+    xintercept = -log10(0.05),    # ≈ 1.30103
+    color = "blue",
+    linetype = "dashed",
+    size = 0.5
+  ) +
+    theme(legend.position = "right") 
+dev.off() 
+```
+```{r}
+# Xuất ra file kết quả 
+
+exp_ordered <- dd_0$exposure
+
+exwas_adjusted_male_result <- exwas_adjusted_male_result[exp_ordered, ]
+
+exwas_adjusted_male_result[] <- lapply(exwas_adjusted_male_result, function(x) {
+  suppressWarnings(as.numeric(x))
+})
+
+exwas_adjusted_male_result <- round(exwas_adjusted_male_result, 4)
+
+exwas_adjusted_male_result$exposure <- rownames(exwas_adjusted_male_result)
+
+# write_xlsx(exwas_adjusted_male_result, "tables/exwas_adjusted_male_result.xlsx")
+```
+
+### Model cho giới nữ
+```{r, warning=FALSE}
+exwas_adjusted_female <- exwas(
+  exp_0, 
+  formula = insulin_re ~ age + zbmi + calories,
+  family = "binomial", 
+  warnings = FALSE,
+  filter = sex==0
+)
+
+exwas_adjusted_female_result <- as.data.frame(exwas_adjusted_female@comparison)
+```
+
+```{r}
+# Vẽ biểu đồ 
+
+png("plots/univariate_adjusted_f_plot.png", width = 7, height = 10, units = "in", res = 300)
+plotExwas(exwas_adjusted_female, show.effective = TRUE) +
+  geom_vline(
+    xintercept = -log10(0.05),    # ≈ 1.30103
+    color = "blue",
+    linetype = "dashed",
+    size = 0.5
+  ) +
+    theme(legend.position = "right") 
+dev.off() 
+```
+```{r}
+# Xuất ra file kết quả 
+
+exp_ordered <- dd_0$exposure
+
+exwas_adjusted_female_result <- exwas_adjusted_female_result[exp_ordered, ]
+
+exwas_adjusted_female_result[] <- lapply(exwas_adjusted_female_result, function(x) {
+  suppressWarnings(as.numeric(x))
+})
+
+exwas_adjusted_female_result <- round(exwas_adjusted_female_result, 4)
+
+exwas_adjusted_female_result$exposure <- rownames(exwas_adjusted_female_result)
+
+# write_xlsx(exwas_adjusted_female_result, "tables/exwas_adjusted_female_result.xlsx")
+```
+
+```{r}
+exp_ordered <- dd_0$exposure
+
+exp_0
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -9,4 +9,5 @@ statsmodels
 pingouin
 missingno
 pyampute
- 
+scikit-learn
+pycirclize
